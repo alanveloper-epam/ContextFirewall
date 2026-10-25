@@ -15,9 +15,11 @@ security fixes.
 Report it privately instead:
 
 1. Use GitHub's **[Report a vulnerability](https://github.com/himanshu748/ContextFirewall/security/advisories/new)**
-   form (Security tab → Advisories), or
-2. if that form is unavailable, contact the maintainer, [@himanshu748](https://github.com/himanshu748),
-   privately on GitHub and ask for a secure channel.
+   form (Security tab → Advisories).
+2. If that form is unavailable, open a
+   [new issue](https://github.com/himanshu748/ContextFirewall/issues/new) titled
+   **"Security contact request"** that contains **no details** about the problem. The maintainer,
+   [@himanshu748](https://github.com/himanshu748), will reply with a private channel for the report.
 
 Please include:
 
