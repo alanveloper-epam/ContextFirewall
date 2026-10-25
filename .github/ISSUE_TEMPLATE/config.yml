@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/himanshu748/ContextFirewall/blob/main/SECURITY.md#reporting-a-vulnerability
+    about: Please report security issues privately, never in a public issue. SECURITY.md lists the private routes.
+  - name: Cognee questions
+    url: https://github.com/topoteretes/cognee
+    about: Questions about Cognee itself belong in the Cognee project.

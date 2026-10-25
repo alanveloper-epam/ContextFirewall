@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in the backend, console, or MCP server is not working as expected.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! **Security problems must not be reported here** — see [SECURITY.md](https://github.com/himanshu748/ContextFirewall/blob/main/SECURITY.md).
+        Never paste real API keys, tokens, or database URLs; redact them first.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Backend (FastAPI / Cognee / firewall checks)
+        - MCP server (hosted /mcp)
+        - MCP package (uvx / stdio)
+        - Frontend console
+        - Supabase / deployment
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands, MCP tool calls, or API requests that trigger the bug.
+      placeholder: |
+        1. Start the backend with `uvicorn app.main:app`
+        2. POST /audit with {"query": "..."}
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Paste logs or responses (they are rendered as code). Redact secrets.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Commit SHA or version
+      placeholder: e.g. e43d7b4, or "hosted demo"
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python / Node versions, MCP client (Claude Code, Cursor, Windsurf, Cline…), storage profile (local or Neo4j/pgvector).

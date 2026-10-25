@@ -13,7 +13,9 @@ Every memory your agent recalls, stores, distils, or forgets flows through [Cogn
 [![MCP](https://img.shields.io/badge/protocol-MCP-0ea5e9?style=flat-square&labelColor=0c0e13)](https://modelcontextprotocol.io)
 [![Backend](https://img.shields.io/badge/backend-FastAPI%20·%20Python%203.12-34d399?style=flat-square&labelColor=0c0e13)](backend)
 [![Frontend](https://img.shields.io/badge/frontend-Next.js%20·%20Vercel-e6e9ef?style=flat-square&labelColor=0c0e13)](frontend)
-[![Tests](https://img.shields.io/badge/tests-35%20passing-34d399?style=flat-square&labelColor=0c0e13)](#evidence-real-runs-no-mocks)
+[![CI](https://img.shields.io/github/actions/workflow/status/himanshu748/ContextFirewall/ci.yml?branch=main&label=CI&style=flat-square&labelColor=0c0e13)](https://github.com/himanshu748/ContextFirewall/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-e6e9ef?style=flat-square&labelColor=0c0e13)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-38bdf8?style=flat-square&labelColor=0c0e13)](CONTRIBUTING.md)
 [![Live](https://img.shields.io/badge/●%20Cognee-live-34d399?style=flat-square&labelColor=0c0e13)](https://himanshukumarjha-contextfirewall.hf.space/health)
 
 **[◆ Live console](https://contextfirewall.vercel.app)**  ·  **[⚡ MCP endpoint](https://himanshukumarjha-contextfirewall.hf.space/mcp)**  ·  **[📖 API docs](https://himanshukumarjha-contextfirewall.hf.space/docs)**
@@ -229,7 +231,7 @@ Everything **downstream of those inputs is real system output**: the verdicts, t
 - The full MCP verb cycle is validated over **both** transports on real Cognee + Hugging Face: `get_trusted_context` / `audit_context` return **6 approved and 4 blocked** for exactly the right reasons; `remember` adds an auditable memory; `improve_rules` distils real `Rule` nodes; `forget_memory` removes from graph and vector.
 - `scripts/mcp_http_probe.py` and `scripts/mcp_full_probe.py` exercise the hosted endpoint; `mcp/tests/test_mcp.py` covers the stdio path and the protocol handshake.
 - `cognify` runs live on Qwen2.5-72B; `GRAPH_COMPLETION` reasons correctly over the temporal deploy-command change.
-- **35 unit tests pass** (`tests/test_secrets.py`, `test_checks.py`, `test_identity.py`, `test_namespace.py`).
+- **Backend unit tests** (`backend/tests/`) run offline and are executed by [CI](.github/workflows/ci.yml) on every pull request.
 - Production runs on managed stores: `/health` reports `graph: neo4j`, `relational: postgres`, `vector: pgvector`.
 
 ---
@@ -240,6 +242,19 @@ Everything **downstream of those inputs is real system output**: the verdicts, t
 - **Continuous auto-recording** of live agent sessions, instead of explicit `remember` calls.
 - **Cross-session accumulating memory** with the firewall governing the growing graph.
 - **Managed Cognee Cloud** as a hosting option alongside self-host.
+
+---
+
+## Contributing
+
+Contributions are welcome — from typo fixes to new firewall checks. Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, tests, and the project's invariants, then pick an issue
+labelled [`good first issue`](https://github.com/himanshu748/ContextFirewall/labels/good%20first%20issue)
+or [`help wanted`](https://github.com/himanshu748/ContextFirewall/labels/help%20wanted).
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md) — please report vulnerabilities privately
+- [MIT License](LICENSE)
 
 ---
 
