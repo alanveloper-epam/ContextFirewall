@@ -14,6 +14,7 @@ the firewall improves on in the demo.
 from __future__ import annotations
 
 import inspect
+import json
 from typing import Any, Dict, List, Optional, Set
 
 from app.firewall.secrets import redact_text
@@ -41,14 +42,76 @@ def _coerce_record(node_id: str, props: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def effective_namespace(props: Dict[str, Any]) -> str:
-    return str(props.get("namespace") or "demo")
+DEMO_NAMESPACE = "demo"
+# Node set attached to everything Cognee derives (chunks, entities, ...) from one
+# namespace's transcripts, so those nodes can be attributed to a tenant.
+NAMESPACE_NODESET_PREFIX = "cf_ns_"
+# Our typed nodes always carry ``namespace``; one without it predates
+# multi-tenancy, when only the demo was writable. SessionEvent is excluded: it
+# inherits its session's namespace.
+_LEGACY_DEMO_TYPES = {"Repo", "AgentSession", "Memory"}
+
+
+def namespace_nodeset(namespace: str) -> str:
+    return f"{NAMESPACE_NODESET_PREFIX}{namespace or DEMO_NAMESPACE}"
+
+
+def _nodeset_names(value: Any) -> List[str]:
+    if not value:
+        return []
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return [value]
+        if isinstance(value, str):
+            return [value]
+    if not isinstance(value, (list, tuple)):
+        return []
+    return [str(v.get("name") if isinstance(v, dict) else v) for v in value if v]
+
+
+def _namespaces_from_nodesets(names: List[str]) -> Set[str]:
+    from .improve import RULES_NODESET
+
+    found: Set[str] = set()
+    for name in names:
+        if name.startswith(NAMESPACE_NODESET_PREFIX) and len(name) > len(NAMESPACE_NODESET_PREFIX):
+            found.add(name[len(NAMESPACE_NODESET_PREFIX):])
+        elif name.startswith(f"{RULES_NODESET}_") and len(name) > len(RULES_NODESET) + 1:
+            found.add(name[len(RULES_NODESET) + 1:])
+        elif name == RULES_NODESET:  # legacy global rules set: operator-written demo content
+            found.add(DEMO_NAMESPACE)
+    return found
+
+
+def node_namespaces(props: Dict[str, Any]) -> Set[str]:
+    """Every namespace a graph node belongs to; empty when it can't be attributed.
+
+    Cognee merges node-set tags when several namespaces produce the same node
+    (e.g. one entity mentioned by two tenants), so a node can carry more than one.
+    """
+    ns = props.get("namespace")
+    if ns:
+        return {str(ns)}
+    if str(props.get("type") or props.get("__type__") or "") in _LEGACY_DEMO_TYPES:
+        return {DEMO_NAMESPACE}
+    return _namespaces_from_nodesets(_nodeset_names(props.get("belongs_to_set")))
+
+
+def effective_namespace(props: Dict[str, Any]) -> Optional[str]:
+    """The single namespace a node belongs to, or None when it has none or several."""
+    found = node_namespaces(props)
+    return next(iter(found)) if len(found) == 1 else None
 
 
 def in_namespace(props: Dict[str, Any], allowed: Optional[Set[str]]) -> bool:
-    if not allowed:
-        return effective_namespace(props) == "demo"
-    return effective_namespace(props) in allowed
+    """Fail closed: readable only when the caller may read *every* namespace the node
+    belongs to, since a shared or unattributed node may hold any of those tenants' content."""
+    found = node_namespaces(props)
+    if not found:
+        return False
+    return found <= (allowed or {DEMO_NAMESPACE})
 
 
 async def _load_graph_memories(namespaces: Optional[Set[str]] = None) -> Dict[str, Dict[str, Any]]:
