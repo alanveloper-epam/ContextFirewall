@@ -26,7 +26,8 @@ EDGES = [
     ("demo-evt", "demo-sess", "session"),
     ("acme-chunk", "acme-entity", "contains"),
     ("demo-chunk", "acme-entity", "contains"),
-    ("shared-entity", {"type": "Entity", "name": "postgres", "belongs_to_set": ["cf_ns_demo", "cf_ns_acme"]}),
+    ("demo-chunk", "shared-entity", "contains"),
+    ("acme-chunk", "shared-entity", "contains"),
     ("legacy-chunk", "demo-chunk", "contains"),
 ]
 
@@ -55,6 +56,59 @@ def test_tenant_sees_only_its_own_nodes(monkeypatch):
     ids, edges = _view(monkeypatch, {"acme"})
     assert ids == {"acme-sess", "acme-evt", "acme-chunk", "acme-entity", "acme-rule"}
     assert edges == {("acme-chunk", "acme-entity")}
+
+
+def test_entity_shared_by_two_namespaces_needs_access_to_both(monkeypatch):
+    ids, edges = _view(monkeypatch, {"demo", "acme"})
+    assert "shared-entity" in ids
+    assert {("demo-chunk", "shared-entity"), ("acme-chunk", "shared-entity")} <= edges
+    for readers in (None, {"demo"}, {"demo", "public"}, {"acme"}):
+        ids, edges = _view(monkeypatch, readers)
+        assert "shared-entity" not in ids
+        assert not any("shared-entity" in e for e in edges)
+
+
+# The same entity name extracted in two namespaces maps to one node id. How the
+# second write lands depends on the graph adapter in cognee 1.2.2:
+#   Neo4j    unions belongs_to_set (``apoc.coll.toSet``) and merges other props;
+#   Ladybug  (local default) replaces the whole property blob on MATCH.
+def _second_write(adapter: str, first: dict, second: dict) -> dict:
+    if adapter == "neo4j":
+        merged = {**first, **second}
+        merged["belongs_to_set"] = sorted(set(first["belongs_to_set"]) | set(second["belongs_to_set"]))
+        return merged
+    return dict(second)
+
+
+def test_same_entity_written_by_two_namespaces_never_leaks_across_them():
+    from app.cognee_runtime.recall import in_namespace
+
+    acme = {"type": "Entity", "name": "billing-db", "description": "acme notes", "belongs_to_set": ["cf_ns_acme"]}
+    globex = {"type": "Entity", "name": "billing-db", "description": "globex notes", "belongs_to_set": ["cf_ns_globex"]}
+
+    union = _second_write("neo4j", acme, globex)
+    assert not in_namespace(union, {"acme"})
+    assert not in_namespace(union, {"globex"})
+    assert not in_namespace(union, {"demo", "public"})
+
+    # Last writer wins: tag and content are both globex's, so only globex sees it.
+    replaced = _second_write("ladybug", acme, globex)
+    assert replaced["description"] == "globex notes"
+    assert in_namespace(replaced, {"globex"})
+    assert not in_namespace(replaced, {"acme"})
+    assert not in_namespace(replaced, None)
+
+
+def test_conflicting_namespace_tags_are_rejected_not_first_wins():
+    from app.cognee_runtime.recall import effective_namespace, in_namespace
+
+    for tags in (["cf_ns_acme", "cf_ns_globex"], ["cf_ns_globex", "cf_ns_acme"],
+                 ["coding_agent_rules_acme", "cf_ns_globex"], ["cf_ns_acme", "coding_agent_rules"]):
+        props = {"type": "Entity", "belongs_to_set": tags}
+        assert effective_namespace(props) is None
+        assert not in_namespace(props, {"acme"})
+        assert not in_namespace(props, {"globex"})
+        assert not in_namespace(props, None)
 
 
 def test_ingest_tags_cognified_nodes_with_namespace(monkeypatch):
@@ -86,3 +140,7 @@ def test_ingest_tags_cognified_nodes_with_namespace(monkeypatch):
     res = asyncio.run(ingest.ingest_session(session, cognify=True, namespace="acme"))
     assert res["cognified"] is True
     assert calls["add"]["node_set"] == ["cf_ns_acme"]
+
+    other = dict(session, session_id="globex-1", memories=[{"text": "a fact", "subject": "s"}])
+    asyncio.run(ingest.ingest_session(other, cognify=True, namespace="globex"))
+    assert calls["add"]["node_set"] == ["cf_ns_globex"]
