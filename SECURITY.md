@@ -10,7 +10,7 @@ security fixes.
 
 ## Reporting a vulnerability
 
-**Please do not open a public issue, discussion, or pull request for a security problem.**
+**Please do not describe a security problem in a public issue, discussion, or pull request.**
 
 Report it privately instead:
 
