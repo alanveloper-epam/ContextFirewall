@@ -17,6 +17,7 @@ NODES = [
     ("acme-chunk", {"type": "DocumentChunk", "text": "acme private transcript", "belongs_to_set": ["cf_ns_acme"]}),
     ("acme-entity", {"type": "Entity", "name": "acme-internal-service", "belongs_to_set": ["cf_ns_acme"]}),
     ("acme-rule", {"type": "Rule", "text": "acme rule", "belongs_to_set": ["coding_agent_rules_acme"]}),
+    ("shared-entity", {"type": "Entity", "name": "postgres", "belongs_to_set": ["cf_ns_demo", "cf_ns_acme"]}),
     ("legacy-chunk", {"type": "DocumentChunk", "text": "untagged transcript from any tenant"}),
     ("legacy-entity", {"type": "Entity", "name": "untagged-entity"}),
     ("orphan-evt", {"type": "SessionEvent", "session_id": "missing", "content": "orphan event"}),
@@ -25,6 +26,7 @@ EDGES = [
     ("demo-evt", "demo-sess", "session"),
     ("acme-chunk", "acme-entity", "contains"),
     ("demo-chunk", "acme-entity", "contains"),
+    ("shared-entity", {"type": "Entity", "name": "postgres", "belongs_to_set": ["cf_ns_demo", "cf_ns_acme"]}),
     ("legacy-chunk", "demo-chunk", "contains"),
 ]
 

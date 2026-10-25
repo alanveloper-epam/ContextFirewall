@@ -71,41 +71,47 @@ def _nodeset_names(value: Any) -> List[str]:
     return [str(v.get("name") if isinstance(v, dict) else v) for v in value if v]
 
 
-def _namespace_from_nodesets(names: List[str]) -> Optional[str]:
+def _namespaces_from_nodesets(names: List[str]) -> Set[str]:
     from .improve import RULES_NODESET
 
+    found: Set[str] = set()
     for name in names:
         if name.startswith(NAMESPACE_NODESET_PREFIX) and len(name) > len(NAMESPACE_NODESET_PREFIX):
-            return name[len(NAMESPACE_NODESET_PREFIX):]
-        if name.startswith(f"{RULES_NODESET}_") and len(name) > len(RULES_NODESET) + 1:
-            return name[len(RULES_NODESET) + 1:]
-        if name == RULES_NODESET:  # legacy global rules set: operator-written demo content
-            return DEMO_NAMESPACE
-    return None
+            found.add(name[len(NAMESPACE_NODESET_PREFIX):])
+        elif name.startswith(f"{RULES_NODESET}_") and len(name) > len(RULES_NODESET) + 1:
+            found.add(name[len(RULES_NODESET) + 1:])
+        elif name == RULES_NODESET:  # legacy global rules set: operator-written demo content
+            found.add(DEMO_NAMESPACE)
+    return found
 
 
-def effective_namespace(props: Dict[str, Any]) -> Optional[str]:
-    """The namespace a graph node belongs to, or None when it can't be attributed.
+def node_namespaces(props: Dict[str, Any]) -> Set[str]:
+    """Every namespace a graph node belongs to; empty when it can't be attributed.
 
-    Unattributable nodes (e.g. Cognee-derived nodes from before node-set tagging)
-    are readable by nobody: failing closed is the only safe choice, because they
-    may hold any tenant's transcript content.
+    Cognee merges node-set tags when several namespaces produce the same node
+    (e.g. one entity mentioned by two tenants), so a node can carry more than one.
     """
     ns = props.get("namespace")
     if ns:
-        return str(ns)
+        return {str(ns)}
     if str(props.get("type") or props.get("__type__") or "") in _LEGACY_DEMO_TYPES:
-        return DEMO_NAMESPACE
-    return _namespace_from_nodesets(_nodeset_names(props.get("belongs_to_set")))
+        return {DEMO_NAMESPACE}
+    return _namespaces_from_nodesets(_nodeset_names(props.get("belongs_to_set")))
+
+
+def effective_namespace(props: Dict[str, Any]) -> Optional[str]:
+    """The single namespace a node belongs to, or None when it has none or several."""
+    found = node_namespaces(props)
+    return next(iter(found)) if len(found) == 1 else None
 
 
 def in_namespace(props: Dict[str, Any], allowed: Optional[Set[str]]) -> bool:
-    ns = effective_namespace(props)
-    if ns is None:
+    """Fail closed: readable only when the caller may read *every* namespace the node
+    belongs to, since a shared or unattributed node may hold any of those tenants' content."""
+    found = node_namespaces(props)
+    if not found:
         return False
-    if not allowed:
-        return ns == DEMO_NAMESPACE
-    return ns in allowed
+    return found <= (allowed or {DEMO_NAMESPACE})
 
 
 async def _load_graph_memories(namespaces: Optional[Set[str]] = None) -> Dict[str, Dict[str, Any]]:

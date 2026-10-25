@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.auth import sanitize_namespace, write_allowed
 from app.cognee_runtime.forget import orphan_node_ids
-from app.cognee_runtime.recall import effective_namespace, in_namespace, namespace_nodeset
+from app.cognee_runtime.recall import effective_namespace, in_namespace, namespace_nodeset, node_namespaces
 
 
 def test_effective_namespace_legacy_firewall_nodes_are_demo():
@@ -30,6 +30,18 @@ def test_effective_namespace_reads_cognee_node_set_tags():
     assert effective_namespace({"type": "Rule", "belongs_to_set": ["coding_agent_rules"]}) == "demo"
     assert effective_namespace({"type": "Entity", "belongs_to_set": ["cf_ns_"]}) is None
     assert effective_namespace({"type": "Entity", "belongs_to_set": ["unrelated_set"]}) is None
+
+
+def test_nodes_shared_across_namespaces_need_access_to_all_of_them():
+    shared = {"type": "Entity", "belongs_to_set": ["cf_ns_demo", "cf_ns_acme"]}
+    assert node_namespaces(shared) == {"demo", "acme"}
+    assert effective_namespace(shared) is None
+    assert not in_namespace(shared, None)
+    assert not in_namespace(shared, {"demo", "public"})
+    assert not in_namespace(shared, {"acme"})
+    assert in_namespace(shared, {"demo", "acme"})
+    # Duplicate tags for one namespace still count as a single owner.
+    assert effective_namespace({"type": "Entity", "belongs_to_set": ["cf_ns_acme", "cf_ns_acme"]}) == "acme"
 
 
 def test_in_namespace_respects_demo_and_public():
