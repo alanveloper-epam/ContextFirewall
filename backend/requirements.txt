@@ -7,7 +7,6 @@ uvicorn[standard]
 # MCP server (streamable HTTP, mounted at /mcp) — the headline agent-facing surface
 mcp>=1.9.0,<2  # 2.x renamed FastMCP; see #36
 # Config and HTTP
-pydantic-settings
 python-dotenv
 httpx
 numpy
@@ -15,6 +14,6 @@ numpy
 neo4j
 asyncpg
 pgvector
-# Note: embeddings use the Hugging Face router API (app/cognee_runtime/hf_embeddings.py),
+# NOTE: embeddings use the Hugging Face router API (app/cognee_runtime/hf_embeddings.py),
 # so no local embedding model is required. fastembed is optional (only if you set
 # EMBEDDING_PROVIDER=fastembed for fully-local embeddings).

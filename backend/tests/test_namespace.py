@@ -26,9 +26,9 @@ def test_write_allowed_requires_exact_bearer_when_token_set(monkeypatch):
     assert not write_allowed("Token secret-token", "secret-token")
 
 
-def test_write_allowed_opens_when_env_unset():
-    assert write_allowed(None, None)
-    assert write_allowed("anything", None)
+def test_write_allowed_fails_closed_when_env_unset():
+    assert not write_allowed(None, None)
+    assert not write_allowed("anything", None)
 
 
 def test_sanitize_namespace_normalizes_and_rejects_invalid():

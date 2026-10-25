@@ -25,6 +25,7 @@ in the environment to enable them; without it, destructive paths are disabled.
 """
 from __future__ import annotations
 
+import hmac
 import json
 import os
 from contextlib import asynccontextmanager
@@ -103,9 +104,14 @@ app.mount("/mcp", mcp_http_app)
 
 
 def _admin_token_ok(token: Optional[str]) -> bool:
-    """True only when an admin token is configured AND the caller presents the match."""
+    """True only when an admin token is configured AND the caller presents the match.
+
+    Uses constant-time comparison to avoid timing side-channels.
+    """
     configured = os.environ.get("CF_ADMIN_TOKEN")
-    return bool(configured) and bool(token) and token == configured
+    if not configured or not token:
+        return False
+    return hmac.compare_digest(token.encode(), configured.encode())
 
 
 def _require_admin(token: Optional[str]) -> None:

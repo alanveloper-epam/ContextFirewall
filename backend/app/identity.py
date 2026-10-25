@@ -18,6 +18,7 @@ override that writes to the shared ``public`` namespace.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 from dataclasses import dataclass, field
 from typing import Optional, Set
@@ -147,7 +148,7 @@ async def resolve_identity(authorization: Optional[str], env_write_token: Option
             )
         return _anonymous()  # unknown/revoked key -> no privileges
     env_token = env_write_token if env_write_token is not None else os.getenv("CF_WRITE_TOKEN")
-    if env_token and token == env_token:
+    if env_token and token and hmac.compare_digest(token.encode(), env_token.encode()):
         return Identity(
             kind="admin",
             namespace=PUBLIC_NAMESPACE,
